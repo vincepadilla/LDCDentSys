@@ -1348,7 +1348,9 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
         </div>
 
         <!-- Dashboard Overview -->
-        <div id="overviewReport">
+        <div class="report-section-wrapper" id="overviewReport">
+            <h3 class="report-section-title"><i class="fa-solid fa-chart-line"></i> Dashboard Overview</h3>
+            <div>
             <?php
             // Total Appointments
             $totalAppointments = mysqli_fetch_assoc(mysqli_query($con, "SELECT COUNT(*) AS total FROM appointments"))['total'];
@@ -1493,10 +1495,13 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                     </div>
                 </div>
             </div>
+            </div>
         </div>
 
         <!-- Monthly Service Distribution -->
-        <div id="serviceReport" style="display:none;">
+        <div class="report-section-wrapper" id="serviceReport">
+            <h3 class="report-section-title"><i class="fa-solid fa-chart-pie"></i> Monthly Service Distribution</h3>
+            <div>
             <?php
             $monthlyServiceData = [];
             $currentYear = date('Y');
@@ -1539,12 +1544,15 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                 <canvas id="servicePieChart"></canvas>
                 <div id="colorGuide" class="color-guide"></div>
             </div>
+            </div>
         </div>
 
         <!-- Appointments Per Day -->
-        <div id="appointmentsReport" style="display:none;">
+        <div class="report-section-wrapper" id="appointmentsReport">
+            <h3 class="report-section-title"><i class="fa-solid fa-calendar-days"></i> Appointments Per Day (Last 30 Days)</h3>
+            <div>
             <div class="chart-box">
-                <h3>Appointments Per Day</h3>
+                <h3>Appointments Per Day (Last 30 Days)</h3>
                 <?php
                 $sql = "SELECT appointment_date, COUNT(*) as count FROM appointments 
                         WHERE appointment_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
@@ -1553,16 +1561,20 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                 $dates = [];
                 $counts = [];
                 while ($row = mysqli_fetch_assoc($result)) {
-                    $dates[] = date('M j', strtotime($row['appointment_date']));
+                    // Format: Day Name, Month Day (e.g., "Mon, Nov 9")
+                    $dates[] = date('D, M j', strtotime($row['appointment_date']));
                     $counts[] = (int)$row['count'];
                 }
                 ?>
                 <canvas id="appointmentsBarChart"></canvas>
             </div>
+            </div>
         </div>
 
         <!-- Financial Report -->
-        <div id="financialReport" style="display:none;">
+        <div class="report-section-wrapper" id="financialReport">
+            <h3 class="report-section-title"><i class="fa-solid fa-money-bill-wave"></i> Total Downpayment Report</h3>
+            <div>
             <div class="chart-box">
                 <h3>Financial Report (Last 30 Days)</h3>
                 <?php
@@ -1581,6 +1593,7 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                 }
                 ?>
                 <canvas id="financialBarChart"></canvas>
+            </div>
             </div>
         </div>
 
@@ -1745,76 +1758,200 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
             }
 
             function toggleReportSections() {
+                // This function is kept for compatibility but doesn't hide/show reports
+                // All reports are always visible
                 const selected = document.getElementById('reportType').value;
-                ['overviewReport', 'serviceReport', 'appointmentsReport', 'financialReport'].forEach(id => {
-                    document.getElementById(id).style.display = 'none';
-                });
-                document.getElementById(selected + 'Report').style.display = 'block';
-
-                if (selected === 'appointments' && !appointmentsChart) {
-                    const ctx = document.getElementById('appointmentsBarChart').getContext('2d');
-                    appointmentsChart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: <?php echo json_encode($dates); ?>,
-                            datasets: [{
-                                label: 'Appointments',
-                                data: <?php echo json_encode($counts); ?>,
-                                borderColor: '#3B82F6',
-                                backgroundColor: 'rgba(59,130,246,0.3)',
-                                tension: 0.2,
-                                fill: true
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { 
-                                title: { 
-                                    display: true, 
-                                    text: 'Appointments Trend (Last 30 Days)' 
-                                } 
-                            },
-                            scales: { 
-                                y: { 
-                                    beginAtZero: true 
-                                } 
+                
+                // Scroll to the selected report section
+                const selectedReportId = selected + 'Report';
+                const selectedElement = document.getElementById(selectedReportId);
+                if (selectedElement) {
+                    selectedElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    
+                    // Initialize charts if not already initialized
+                    if (selected === 'appointments' && !appointmentsChart) {
+                        setTimeout(() => {
+                            const ctx = document.getElementById('appointmentsBarChart');
+                            if (ctx) {
+                                appointmentsChart = new Chart(ctx.getContext('2d'), {
+                                    type: 'line',
+                                    data: {
+                                        labels: <?php echo json_encode($dates); ?>,
+                                        datasets: [{
+                                            label: 'Appointments',
+                                            data: <?php echo json_encode($counts); ?>,
+                                            borderColor: '#3B82F6',
+                                            backgroundColor: 'rgba(59,130,246,0.3)',
+                                            tension: 0.2,
+                                            fill: true
+                                        }]
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        plugins: { 
+                                            title: { 
+                                                display: true, 
+                                                text: 'Appointments Trend (Last 30 Days)' 
+                                            } 
+                                        },
+                                        scales: { 
+                                            y: { 
+                                                beginAtZero: true 
+                                            } 
+                                        }
+                                    }
+                                });
                             }
+                        }, 100);
+                    }
+
+                    if (selected === 'financial' && !financialChart) {
+                        setTimeout(() => {
+                            const ctx = document.getElementById('financialBarChart');
+                            if (ctx) {
+                                financialChart = new Chart(ctx.getContext('2d'), {
+                                    type: 'line',
+                                    data: {
+                                        labels: <?php echo json_encode($datesPaid); ?>,
+                                        datasets: [{
+                                            label: 'Total Paid (₱)',
+                                            data: <?php echo json_encode($amountsPaid); ?>,
+                                            borderColor: '#10B981',
+                                            backgroundColor: 'rgba(16,185,129,0.3)',
+                                            tension: 0.2,
+                                            fill: true
+                                        }]
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        plugins: { 
+                                            title: { 
+                                                display: true, 
+                                                text: 'Revenue Trend (Last 30 Days)' 
+                                            } 
+                                        },
+                                        scales: { 
+                                            y: { 
+                                                beginAtZero: true 
+                                            } 
+                                        }
+                                    }
+                                });
+                            }
+                        }, 100);
+                    }
+                }
+            }
+            
+            function initAllReportCharts() {
+                // Initialize appointments chart
+                if (!appointmentsChart) {
+                    setTimeout(() => {
+                        const ctx = document.getElementById('appointmentsBarChart');
+                        if (ctx) {
+                            appointmentsChart = new Chart(ctx.getContext('2d'), {
+                                type: 'line',
+                                data: {
+                                    labels: <?php echo json_encode($dates); ?>,
+                                    datasets: [{
+                                        label: 'Appointments',
+                                        data: <?php echo json_encode($counts); ?>,
+                                        borderColor: '#3B82F6',
+                                        backgroundColor: 'rgba(59,130,246,0.3)',
+                                        tension: 0.2,
+                                        fill: true
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: { 
+                                        title: { 
+                                            display: true, 
+                                            text: 'Appointments Per Day (Last 30 Days)' 
+                                        },
+                                        legend: {
+                                            display: true,
+                                            position: 'top',
+                                            labels: {
+                                                generateLabels: function(chart) {
+                                                    const data = chart.data;
+                                                    if (data.labels.length > 0) {
+                                                        return data.labels.map((label, index) => {
+                                                            return {
+                                                                text: label + ': ' + data.datasets[0].data[index] + ' appointment(s)',
+                                                                fillStyle: data.datasets[0].backgroundColor,
+                                                                strokeStyle: data.datasets[0].borderColor,
+                                                                lineWidth: 2,
+                                                                hidden: false,
+                                                                index: index
+                                                            };
+                                                        });
+                                                    }
+                                                    return [];
+                                                }
+                                            }
+                                        }
+                                    },
+                                    scales: { 
+                                        y: { 
+                                            beginAtZero: true,
+                                            title: {
+                                                display: true,
+                                                text: 'Number of Appointments'
+                                            }
+                                        },
+                                        x: {
+                                            title: {
+                                                display: true,
+                                                text: 'Day'
+                                            }
+                                        }
+                                    }
+                                }
+                            });
                         }
-                    });
+                    }, 200);
                 }
 
-                if (selected === 'financial' && !financialChart) {
-                    const ctx = document.getElementById('financialBarChart').getContext('2d');
-                    financialChart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: <?php echo json_encode($datesPaid); ?>,
-                            datasets: [{
-                                label: 'Total Paid (₱)',
-                                data: <?php echo json_encode($amountsPaid); ?>,
-                                borderColor: '#10B981',
-                                backgroundColor: 'rgba(16,185,129,0.3)',
-                                tension: 0.2,
-                                fill: true
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { 
-                                title: { 
-                                    display: true, 
-                                    text: 'Revenue Trend (Last 30 Days)' 
-                                } 
-                            },
-                            scales: { 
-                                y: { 
-                                    beginAtZero: true 
-                                } 
-                            }
+                // Initialize financial chart
+                if (!financialChart) {
+                    setTimeout(() => {
+                        const ctx = document.getElementById('financialBarChart');
+                        if (ctx) {
+                            financialChart = new Chart(ctx.getContext('2d'), {
+                                type: 'line',
+                                data: {
+                                    labels: <?php echo json_encode($datesPaid); ?>,
+                                    datasets: [{
+                                        label: 'Total Paid (₱)',
+                                        data: <?php echo json_encode($amountsPaid); ?>,
+                                        borderColor: '#10B981',
+                                        backgroundColor: 'rgba(16,185,129,0.3)',
+                                        tension: 0.2,
+                                        fill: true
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: { 
+                                        title: { 
+                                            display: true, 
+                                            text: 'Revenue Trend (Last 30 Days)' 
+                                        } 
+                                    },
+                                    scales: { 
+                                        y: { 
+                                            beginAtZero: true 
+                                        } 
+                                    }
+                                }
+                            });
                         }
-                    });
+                    }, 300);
                 }
             }
 
@@ -1822,7 +1959,7 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
             document.addEventListener('DOMContentLoaded', function() {
                 updateChart();
                 initDashboardCharts();
-                document.getElementById('overviewReport').style.display = 'block';
+                initAllReportCharts();
             });
         </script>
 
@@ -1847,6 +1984,25 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                 border-radius:8px; 
                 border:1px solid #d1d5db; 
                 background:white;
+            }
+            .report-section-wrapper {
+                margin-bottom: 40px;
+                padding: 25px;
+                background: #f9fafb;
+                border-radius: 12px;
+                border: 1px solid #e5e7eb;
+            }
+            .report-section-title {
+                color: #374151;
+                font-size: 20px;
+                font-weight: 600;
+                margin-bottom: 20px;
+                padding-bottom: 10px;
+                border-bottom: 2px solid #e5e7eb;
+            }
+            .report-section-title i {
+                margin-right: 10px;
+                color: #4F46E5;
             }
             .stats-grid {
                 display:grid; 
@@ -1901,7 +2057,6 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                 height: 350px;
                 display: flex;
                 flex-direction: column;
-                
             }
             .chart-box h3 {
                 margin-top: 0;
